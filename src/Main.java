@@ -35,18 +35,8 @@ public class Main {
      */
     public static void main(String[] args) throws FileNotFoundException {
 
-        // Load first argument as file path
-        if (args.length != 0) {
-            Path filePath = Path.of(args[0]);
-            if (!Files.exists(filePath)) {
-                System.out.println("Le programme ne peut fonctionner qu'avec le fichier csv d'historique des sets passé en argument");
-                System.out.println("Il va donc s'arrêter car l'argument passé est non trouvé sur le disque");
-                return;
-            }
-
-        } else {
-            System.out.println("Le programme ne peut fonctionner qu'avec le fichier csv d'historique des sets");
-            System.out.println("Il va donc s'arrêter car l'arguments passé est vide !");
+        // Check first argument as valid file path
+        if (!checkArgument(args[0])) {
             return;
         }
 
@@ -57,23 +47,78 @@ public class Main {
         String mainChoice;
         do {
             mainChoice = showMenu(mainMenuChoices);
+
             switch (mainChoice) {
                 case "1":
-                    addBodyBuildingSetToFile(args[0]);
+                    // Display Exercises Menu and get user choice
+                    String exerciseChoice = showMenu(exercisesMenuChoices);
+                    // get number of repetitions for the new set
+                    int nbRep = getIntOnStdIn("Please enter the Number of iterations for this set of " + exercisesMenuChoices.get(exerciseChoice) + " : ");
+                    // get load used for the new set
+                    double load = getDoubleOnStdIn("Please enter the Load used for this set of " + exercisesMenuChoices.get(exerciseChoice) + " : ");
+                    // write the new set in file
+                    ServiceSetsFile.addBodyBuildingSetToFile(new BodyBuildingSet(exercisesMenuChoices.get(exerciseChoice), nbRep, load), args[0]);
                     break;
+
                 case "2":
-                    bodyBuildingSetsList = loadCsvFileInMemory(args[0]);
-                    showStats(showMenu(exercisesMenuChoices),showMenu(statsMenuChoices));
+                    // Display Exercises Menu and get user choice
+                    exerciseChoice = showMenu(exercisesMenuChoices);
+                    // Display Stats Menu and get user choice
+                    String statChoice = showMenu(statsMenuChoices);
+                    // Load sets in memory
+                    try {
+                        bodyBuildingSetsList = ServiceSetsFile.loadCsvFileInMemory(args[0]);
+                    } catch (Exception e) {
+                        if (e instanceof ServiceSetsFile.fileEmptyException) {
+                            System.out.println("Une erreur est survenue !  le fichier ne contient qu'un entête !\n" + e.getLocalizedMessage());
+                            return;
+                        } else {
+                            System.out.println("Une erreur est survenue !  Pas de fichier d'historique de sets !\n" + e.getLocalizedMessage());
+                            return;
+                        }
+                    }
+                    // compute stats and display result
+                    //    1st argument : a 3*3 array of double containing result of the 3 stats (average, median, maximum) for the 3 possibles choices (load/nbRep ; nbRep ; load/set)
+                    //    2nd argument is the text of choosen exercise
+                    //    3rd argument is the text of asked statistics
+                    try {
+                        showResults(ServiceStat.computeStats(bodyBuildingSetsList, exercisesMenuChoices.get(exerciseChoice)), exercisesMenuChoices.get(exerciseChoice), statsMenuChoices.get(statChoice));
+                    } catch (ServiceSetsFile.fileEmptyException e) {
+                        System.out.println("Une erreur est survenue !  il n'y a pas de sets enregistrés pour l'exercice demandé !\n" + e.getLocalizedMessage());
+                    }
                     break;
+
                 default:
                     break;
             }
-        } while (!mainChoice.equals("3"));
+        } while (!"3".equals(mainChoice));
 
         // Close input scanner
         inputScanner.close();
     }
 
+
+    /**
+     * Check file received is an existing files.
+     *
+     * @param fileName the path to check.
+     * @return true if it is a valid path, false either.
+     */
+    private static boolean checkArgument(String fileName) {
+        if (fileName.length() != 0) {
+            Path filePath = Path.of(fileName);
+            if (!Files.exists(filePath)) {
+                System.out.println("Le programme ne peut fonctionner qu'avec le fichier csv d'historique des sets passé en argument");
+                System.out.println("Il va donc s'arrêter car l'argument passé est non trouvé sur le disque");
+                return false;
+            }
+        } else {
+            System.out.println("Le programme ne peut fonctionner qu'avec le fichier csv d'historique des sets");
+            System.out.println("Il va donc s'arrêter car l'arguments passé est vide !");
+            return false;
+        }
+        return true;
+    }
 
     /**
      * Load menus in the menu choices hash maps.
@@ -135,87 +180,13 @@ public class Main {
         return userChoice;
     }
 
-
     /**
-     * Loads a csv file in a list of body building sets.
+     * Gets an int from a user.
      *
-     * @param fileName the path to the file on disk.
-     * @return the ArrayList of BodyBuildingSet.
+     * @param userGuide a message to explain what for the int is requested.
+     * @return the user choice.
      */
-    public static ArrayList loadCsvFileInMemory(String fileName) {
-
-        // Alimentation d'un arrayList de BodyBuildingSets par lecture du fichier passé en argument
-        ArrayList<String> csvLinesList = readFileToArrayList(fileName);
-
-        ArrayList<BodyBuildingSet> bodyBuildingSetsList = new ArrayList<>();
-        boolean firstLine = true;
-
-        for (String csvLine : csvLinesList) {
-            String[] csvLineSplit = csvLine.split(";");
-            if (!firstLine) {
-                BodyBuildingSet bodyBuildingSet = new BodyBuildingSet(csvLineSplit[0], Integer.parseInt(csvLineSplit[1]), Double.parseDouble(csvLineSplit[2]));
-                bodyBuildingSetsList.add(bodyBuildingSet);
-            } else {
-                firstLine = false;
-            }
-        }
-        return bodyBuildingSetsList;
-    }
-
-    /**
-     * Load body buildings sets file as a list of strings representing body building sets in csv format .
-     *
-     * @param fileName the path to the file on disk.
-     * @return the ArrayList of strings representing body building Set in csv format.
-     */
-    // Lecteur de fichier vers ArrayList
-    public static ArrayList readFileToArrayList(String fileName) {
-        ArrayList<String> csvLinesInArrayList = new ArrayList<>();
-        //Scanner scFile;
-        int nbLinesRead = 0;
-
-        try (Scanner scFile = new Scanner(new java.io.File(fileName))) {
-            for (int i = 0; (scFile.hasNextLine()); ++i) {                              // boucle tant qu'il y a une ligne suivante
-                String lineRead = scFile.nextLine();                                         // lecture d'une ligne
-                if (lineRead.length() > 0) {                                                 // si ligne vide , rien n'est fait ==> itération sur ligne suivante
-                    csvLinesInArrayList.add(lineRead);   // ajout de la ligne lue sur SstdIn dans la ArrayList
-                }
-            }
-
-        } catch (FileNotFoundException e) {
-            System.out.println("Une erreur est survenue !\n" + e.getLocalizedMessage());
-            //      scFile.nextLine();
-        }
-        return csvLinesInArrayList;
-    }
-
-    /**
-     * Add a new body building set.
-     */
-    private static void addBodyBuildingSetToFile(String fileName) throws FileNotFoundException {
-
-        String exerciseChoice = showMenu(exercisesMenuChoices);
-        String exerciseLib = exercisesMenuChoices.get(exerciseChoice);
-        int nbRep = getIntOnStdIn("Please enter the Number of iterations for this set of " + exerciseLib + " : ");
-        double load = getDoubleOnStdIn("Please enter the Load used for this set of " + exerciseLib + " : ");
-
-        BodyBuildingSet bodyBuildingSet = new BodyBuildingSet(exerciseLib, nbRep, load);
-
-        File csvFile = new File(fileName);
-        if (!csvFile.exists())
-            throw new FileNotFoundException("Le fichier n'existe pas");
-        else {
-            PrintStream l_out = new PrintStream(new FileOutputStream(fileName, true));
-            l_out.println(bodyBuildingSet.toString());
-            l_out.flush();
-            l_out.close();
-        }
-        return;
-        //                    writeBodyBuildingSetInFile(filePath;bodyBuildingSet){ /* line=bodyBuildingSet.toString()};
-        //                    updateBodyBuildingSetsList(true);
-    }
-
-    public static int getIntOnStdIn(String userGuide) {
+    private static int getIntOnStdIn(String userGuide) {
 /*----------------------------------------------------------------------
 affichage texte utilisateur + saisie clavier + return de l'int saisi
  ----------------------------------------------------------------------*/
@@ -234,7 +205,13 @@ affichage texte utilisateur + saisie clavier + return de l'int saisi
 
     }
 
-    public static double getDoubleOnStdIn(String userGuide) {
+    /**
+     * Gets a double from a user.
+     *
+     * @param userGuide a message to explain what for the double is requested.
+     * @return the user choice.
+     */
+    private static double getDoubleOnStdIn(String userGuide) {
 /*----------------------------------------------------------------------
 affichage texte utilisateur + saisie clavier + return de l'int saisi
  ----------------------------------------------------------------------*/
@@ -256,200 +233,34 @@ affichage texte utilisateur + saisie clavier + return de l'int saisi
 
     /**
      * Statistics menu handling.
+     *
+     * @param results     a 3*3 Array containing statistics results.
+     * @param exerciseLib the text of the chosen exercise
+     * @param statLib     the text of the chosen statistics
      */
-    private static void showStats(String exerciseChoice, String statChoice) {
+    private static void showResults(double[][] results, String exerciseLib, String statLib) {
 
-        String exerciseLib = exercisesMenuChoices.get(exerciseChoice);
-        String statLib = statsMenuChoices.get(statChoice);
-
-        double sumOfLoadByNbRep = 0;
-        double sumOfNbRep = 0;
-        double maxLoad = 0;
-        double maxNbRep = 0;
-        double maxLoadBySet = 0;
-
-        // Utilisation d'une 2eme ArrayList (égale mais pas identique) à fin de ne conserver que les sets de l'exercice à stater
-        ArrayList<BodyBuildingSet> bodyBuildingSetsListOfExercise = new ArrayList<>();
-        bodyBuildingSetsListOfExercise = (ArrayList<BodyBuildingSet>) bodyBuildingSetsList.clone();
-
-        // si pas de set ==> pas de stats...
-        if (bodyBuildingSetsListOfExercise.size() < 1) {
-            System.out.println("----------- Stats " + exerciseLib + " " + statLib + " ----------");
-            System.out.println("Aucun set pour cet exercice ! ");
-            return;
-        }
-
-        for (BodyBuildingSet currentBBS : bodyBuildingSetsList) {
-            if (currentBBS.getExercise().equals(exerciseLib)) {
-                sumOfLoadByNbRep += currentBBS.getLoadByNbRep();
-                sumOfNbRep += currentBBS.getNbRep();
-                maxLoad = maxLoad < currentBBS.getLoad() ? currentBBS.getLoad() : maxLoad;
-                maxNbRep = maxNbRep < currentBBS.getNbRep() ? currentBBS.getNbRep() : maxNbRep;
-                maxLoadBySet = maxLoadBySet < currentBBS.getLoadByNbRep() ? currentBBS.getLoadByNbRep() : maxLoadBySet;
-            } else {
-                bodyBuildingSetsListOfExercise.remove(currentBBS);
-            }
-        }
-// détermination des 3 moyennes
-        double averageLoad = sumOfLoadByNbRep / sumOfNbRep;
-        double averageNbRep = sumOfNbRep / bodyBuildingSetsListOfExercise.size();
-        double averageLoadBySet = sumOfLoadByNbRep / bodyBuildingSetsListOfExercise.size();
-
-// détermination des 3 médians
-        // Pour le median, la liste étant classée, le médian est l'indice du milieu ou le milieu entre les 2 index centraux.
-        // Rem : size commençant à 1 et l'index de liste à 0;
-        //          Si size impair ==> index=size/2
-        //          Sinon (pair) median = moyenne entre les 2 index du milieu ==> [index= size/2 (médian supérieur) + index=size/2-1 (median inférieur)] / 2
-        // 3 tris successifs de la liste sont necessaires :
-        //      1er  tri de la liste bodyBuildingSetsListOfExercise sur le poids (load)            (choix 1 au sous menu)
-        //      2eme tri                                            sur le nbRep                   (choix 2 au sous menu)
-        //      3eme tri                                            sur le poids/set (loadByNbRep) (choix 3 au sous menu)
-
-// 1er tri --> Comparator utilise getLoad()
-        bodyBuildingSetsListOfExercise.sort(new Comparator<>() {
-            /**
-             * Compares the body building set regarding ascending load.
-             *
-             * @param o1 body building set 1
-             * @param o2 body building set 2
-             * @return comparison result
-             *          level 1 ==> 0 if both body building sets are null; 1 if o1 is null but not o2; -1 if o2 is null but not o1
-             *          level 2 ==> 1 if o1.load < o2.load; -1 if o1.load > o2.load
-             *          level 3 ==> o1.content.compareTo(o2.content) (alphabetical ascending ordering)
-             */
-            @Override
-            public int compare(BodyBuildingSet o1, BodyBuildingSet o2) {
-                int comparison = 0;
-
-                // If both body building sets are null then they are equal
-                if (o1 == null && o2 == null) return 0;
-                    // Else if body building set 1 is null (but not body building set 2), it should be smaller compared to body building set 2
-                else if (o1 == null) return -1;
-                    // Else if body building set 2 is null, it should smaller than o1
-                else if (o2 == null) return 1;
-
-                // If loads are different, compare them
-                if (o1.getLoad() < o2.getLoad()) {
-                    comparison = -1;
-                } else if (o1.getLoad() > o2.getLoad()) {
-                    comparison = 1;
-                } else {
-                    comparison = 0;
-                }
-
-                return comparison;
-            }
-        });
-        double medianLoad;
-        if (bodyBuildingSetsListOfExercise.size() % 2 == 0)
-            medianLoad = (bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2).getLoad() + bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2 - 1).getLoad()) / 2;
-        else {
-            medianLoad = bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2).getLoad();
-        }
-
-// 2eme tri --> Comparator utilise getNbRep()
-        bodyBuildingSetsListOfExercise.sort(new Comparator<>() {
-            /**
-             * Compares the body building set regarding ascending nbRep.
-             *
-             * @param o1 body building set 1
-             * @param o2 body building set 2
-             * @return comparison result
-             *          level 1 ==> 0 if both body building sets are null; 1 if o1 is null but not o2; -1 if o2 is null but not o1
-             *          level 2 ==> 1 if o1.nbRep < o2.nbRep; -1 if o1.nbRep > o2.nbRep
-             */
-            @Override
-            public int compare(BodyBuildingSet o1, BodyBuildingSet o2) {
-                int comparison = 0;
-
-                // If both body building sets are null then they are equal
-                if (o1 == null && o2 == null) return 0;
-                    // Else if body building set 1 is null (but not body building set 2), it should be smaller compared to body building set 2
-                else if (o1 == null) return -1;
-                    // Else if body building set 2 is null, it should smaller than o1
-                else if (o2 == null) return 1;
-
-                // If nbReps are different, compare them
-                if (o1.getNbRep() < o2.getNbRep()) {
-                    comparison = -1;
-                } else if (o1.getNbRep() > o2.getNbRep()) {
-                    comparison = 1;
-                } else {
-                    comparison = 0;
-                }
-
-                return comparison;
-            }
-        });
-        double medianNbRep;
-        if (bodyBuildingSetsListOfExercise.size() % 2 == 0)
-            medianNbRep = (bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2).getNbRep() + bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2 - 1).getNbRep()) / 2;
-        else {
-            medianNbRep = bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2).getNbRep();
-        }
-
-// 3eme tri --> Comparator utilise getLoadByNbRep()
-        bodyBuildingSetsListOfExercise.sort(new Comparator<>() {
-            /**
-             * Compares the body building set regarding ascending nbRep.
-             *
-             * @param o1 body building set 1
-             * @param o2 body building set 2
-             * @return comparison result
-             *          level 1 ==> 0 if both body building sets are null; 1 if o1 is null but not o2; -1 if o2 is null but not o1
-             *          level 2 ==> 1 if o1.nbRep < o2.nbRep; -1 if o1.nbRep > o2.nbRep
-             */
-            @Override
-            public int compare(BodyBuildingSet o1, BodyBuildingSet o2) {
-                int comparison = 0;
-
-                // If both body building sets are null then they are equal
-                if (o1 == null && o2 == null) return 0;
-                    // Else if body building set 1 is null (but not body building set 2), it should be smaller compared to body building set 2
-                else if (o1 == null) return -1;
-                    // Else if body building set 2 is null, it should smaller than o1
-                else if (o2 == null) return 1;
-
-                // If nbReps are different, compare them
-                if (o1.getLoadByNbRep() < o2.getLoadByNbRep()) {
-                    comparison = -1;
-                } else if (o1.getLoadByNbRep() > o2.getLoadByNbRep()) {
-                    comparison = 1;
-                } else {
-                    comparison = 0;
-                }
-
-                return comparison;
-            }
-        });
-        double medianLoadBySet;
-        if (bodyBuildingSetsListOfExercise.size() % 2 == 0)
-            medianLoadBySet = (bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2).getNbRep() + bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2 - 1).getNbRep()) / 2;
-        else {
-            medianLoadBySet = bodyBuildingSetsListOfExercise.get(bodyBuildingSetsListOfExercise.size() / 2).getNbRep();
-        }
-
-
-// Affichage du résultat
+        // Affichage du résultat
         System.out.println("----------- Stats " + exerciseLib + " " + statLib + " ----------");
-        switch (statChoice) {
-            case "1":
-                System.out.println("poids moyen   soulevé : " + averageLoad + " kg.");
-                System.out.println("poids médian  soulevé : " + medianLoad + " kg.");
-                System.out.println("poids maximal soulevé : " + maxLoad + " kg.");
+        switch (statLib) {
+            case "Stats de poids (/ répétitions)":
+                System.out.println("poids moyen   soulevé : " + results[0][0] + " kg.");
+                System.out.println("poids médian  soulevé : " + results[0][1] + " kg.");
+                System.out.println("poids maximal soulevé : " + results[0][2] + " kg.");
                 break;
-            case "2":
-                System.out.println("nombre moyen   de répétitions : " + averageNbRep + " reps.");
-                System.out.println("nombre médian  de répétitions : " + medianNbRep + " reps.");
-                System.out.println("nombre maximal de répétitions : " + maxNbRep + " reps.");
+            case "Stats de nombre de répétitions":
+                System.out.println("nombre moyen   de répétitions : " + results[1][0] + " reps.");
+                System.out.println("nombre médian  de répétitions : " + results[1][1] + " reps.");
+                System.out.println("nombre maximal de répétitions : " + results[1][2] + " reps.");
                 break;
-            case "3":
-                System.out.println("poids moyen   soulevé par set : " + averageLoadBySet + " kg.");
-                System.out.println("poids médian  soulevé par set : " + medianLoadBySet + " kg.");
-                System.out.println("poids maximal soulevé par set : " + maxLoadBySet + " kg.");
+            case "Stats de poids (/ set)  ":
+                System.out.println("poids moyen   soulevé par set : " + results[2][0] + " kg.");
+                System.out.println("poids médian  soulevé par set : " + results[2][1] + " kg.");
+                System.out.println("poids maximal soulevé par set : " + results[2][2] + " kg.");
                 break;
             default:
                 break;
+
         }
     }
 
