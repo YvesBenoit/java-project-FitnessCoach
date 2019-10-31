@@ -69,7 +69,7 @@ public class Main {
                     try {
                         bodyBuildingSetsList = ServiceSetsFile.loadCsvFileInMemory(args[0]);
                     } catch (Exception e) {
-                        if (e instanceof ServiceSetsFile.fileEmptyException) {
+                        if (e instanceof ServiceSetsFile.FileEmptyException) {
                             System.out.println("Une erreur est survenue !  le fichier ne contient qu'un entête !\n" + e.getLocalizedMessage());
                             return;
                         } else {
@@ -83,7 +83,7 @@ public class Main {
                     //    3rd argument is the text of asked statistics
                     try {
                         showResults(ServiceStat.computeStats(bodyBuildingSetsList, exercisesMenuChoices.get(exerciseChoice)), exercisesMenuChoices.get(exerciseChoice), statsMenuChoices.get(statChoice));
-                    } catch (ServiceSetsFile.fileEmptyException e) {
+                    } catch (ServiceSetsFile.FileEmptyException e) {
                         System.out.println("Une erreur est survenue !  il n'y a pas de sets enregistrés pour l'exercice demandé !\n" + e.getLocalizedMessage());
                     }
                     break;

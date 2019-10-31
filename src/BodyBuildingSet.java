@@ -96,4 +96,82 @@ public class BodyBuildingSet {
     }
 
 
+    static class SortByLoad implements Comparator<BodyBuildingSet> {
+        // Used for sorting in ascending order of
+        // load
+        public int compare(BodyBuildingSet o1, BodyBuildingSet o2) {
+            int comparison = 0;
+
+            // If both body building sets are null then they are equal
+            if (o1 == null && o2 == null) return 0;
+                // Else if body building set 1 is null (but not body building set 2), it should be smaller compared to body building set 2
+            else if (o1 == null) return -1;
+                // Else if body building set 2 is null, it should smaller than o1
+            else if (o2 == null) return 1;
+
+            // If loads are different, compare them
+            if (o1.getLoad() < o2.getLoad()) {
+                comparison = -1;
+            } else if (o1.getLoad() > o2.getLoad()) {
+                comparison = 1;
+            } else {
+                comparison = 0;
+            }
+
+            return comparison;
+        }
+    }
+
+    static class SortByNbRep implements Comparator<BodyBuildingSet> {
+        // Used for sorting in ascending order of
+        // nbRep
+        public int compare(BodyBuildingSet o1, BodyBuildingSet o2) {
+            int comparison = 0;
+
+            // If both body building sets are null then they are equal
+            if (o1 == null && o2 == null) return 0;
+                // Else if body building set 1 is null (but not body building set 2), it should be smaller compared to body building set 2
+            else if (o1 == null) return -1;
+                // Else if body building set 2 is null, it should smaller than o1
+            else if (o2 == null) return 1;
+
+            // If nbReps are different, compare them
+            if (o1.getNbRep() < o2.getNbRep()) {
+                comparison = -1;
+            } else if (o1.getNbRep() > o2.getNbRep()) {
+                comparison = 1;
+            } else {
+                comparison = 0;
+            }
+
+            return comparison;
+        }
+    }
+
+    static class SortByLoadByNbRep implements Comparator<BodyBuildingSet> {
+        // Used for sorting in ascending order of
+        // loadByNbRep
+        public int compare(BodyBuildingSet o1, BodyBuildingSet o2) {
+            int comparison = 0;
+
+            // If both body building sets are null then they are equal
+            if (o1 == null && o2 == null) return 0;
+                // Else if body building set 1 is null (but not body building set 2), it should be smaller compared to body building set 2
+            else if (o1 == null) return -1;
+                // Else if body building set 2 is null, it should smaller than o1
+            else if (o2 == null) return 1;
+
+            // If nbReps are different, compare them
+            if (o1.getLoadByNbRep() < o2.getLoadByNbRep()) {
+                comparison = -1;
+            } else if (o1.getLoadByNbRep() > o2.getLoadByNbRep()) {
+                comparison = 1;
+            } else {
+                comparison = 0;
+            }
+
+            return comparison;
+        }
+    }
+
 }

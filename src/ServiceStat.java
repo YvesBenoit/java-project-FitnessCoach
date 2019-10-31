@@ -1,11 +1,105 @@
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 
 public class ServiceStat {
 
+    /**
+     * compute average, median and max statistics for load, nbRep and load by nbRep from a list of BodyBuildingSet and manage display.
+     * @param bodyBuildingSetsListComplete an ArrayList<BodyBuildingSet> containing the whole body building sets read in file.
+     * @param exerciseLib the chosen exercise text.
+     * @return An array containing the nine possibles values.
+     */
+    public static double[][] computeStats(ArrayList<BodyBuildingSet> bodyBuildingSetsListComplete, String exerciseLib) throws ServiceSetsFile.FileEmptyException {
+
+        double sumOfLoadByNbRep = 0;
+        double sumOfNbRep = 0;
+        double[][] res = new double[3][3];   // 1er niveau ==> Stat choisie : 0 <==> poids , 1 <==> nbRep , 2 <==> poids*nbRep - 2eme niveau : 0 <==> moyenne , 1 <==> médian , 2 <==> maximum
+
+//       Utilisation d'une 2eme ArrayList (égale mais pas identique) à fin de ne conserver que les sets de l'exercice à stater
+        ArrayList<BodyBuildingSet> bodyBuildingSetsList = (ArrayList<BodyBuildingSet>) bodyBuildingSetsListComplete.clone();
+
+        // détermination des 3 maxima et réduction le la liste aux seuls sets correspondant à l'exercice choisi
+        for (BodyBuildingSet currentBBS : bodyBuildingSetsListComplete) {
+            if (currentBBS.getExercise().equals(exerciseLib)) {
+                sumOfLoadByNbRep += currentBBS.getLoadByNbRep();
+                sumOfNbRep += currentBBS.getNbRep();
+                res[0][2] = res[0][2] < currentBBS.getLoad() ? currentBBS.getLoad() : res[0][2];    /* maxLoad */
+                res[1][2] = res[1][2] < currentBBS.getNbRep() ? currentBBS.getNbRep() : res[1][2];     /* maxNbRep */
+                res[2][2] = res[2][2] < currentBBS.getLoadByNbRep() ? currentBBS.getLoadByNbRep() : res[2][2];     /* maxLoadBySet */
+            } else {
+                bodyBuildingSetsList.remove(currentBBS);
+            }
+        }
+        // no sets ==> no stats...
+        if (bodyBuildingSetsList.isEmpty()) {
+            throw new ServiceSetsFile.FileEmptyException("no sets for " + exerciseLib + " ! ");
+        }
+
+        // détermination des 3 moyennes
+        res[0][0] = sumOfLoadByNbRep / sumOfNbRep;       /* averageLoads   */
+        res[1][0] = sumOfNbRep / bodyBuildingSetsList.size();       /* averageNbRep   */
+        res[2][0] = sumOfLoadByNbRep / bodyBuildingSetsList.size();       /* averageLoadsByNbRep   */
+
+        // détermination des 3 médians
+        res[0][1] = getMedianLoad(bodyBuildingSetsList);       /* medianLoads   */
+        res[1][1] = getMedianNbRep(bodyBuildingSetsList);          /* medianNbRep   */
+        res[2][1] = getMedianLoadByNbRep(bodyBuildingSetsList);       /* medianLoadsByNbRep   */
+
+        return res;
+    }
+
+    /**
+     * compute median statistics for load in a list of BodyBuildingSet.
+     *        // the list is ordered by loads.
+     *         // median is get by using the middle index if size is odd, or, by using the middle between the 2 central indexes if size is even .
+     *         // Rem : size begins at 1 and list index starts from 0.
+     *         //          so,if size odd ==> index=size/2
+     *         //             if even ==> index = ( size/2 + index=size/2-1 ) / 2
+     * @param list an ArrayList<BodyBuildingSet>
+     * @return the median load statistic.
+     */
+    private static double getMedianLoad(ArrayList<BodyBuildingSet> list) {
+        Collections.sort(list, new BodyBuildingSet.SortByLoad());
+        return list.size() % 2 == 0 ? (list.get(list.size() / 2).getLoad() + list.get(list.size() / 2 - 1).getLoad()) / 2 : list.get(list.size() / 2).getLoad();
+    }
+
+    /**
+     * compute median statistics for nbRep in a list of BodyBuildingSet.
+     *         // the list is ordered by nbReps.
+     *         // median is get by using the middle index if size is odd, or, by using the middle between the 2 central indexes if size is even .
+     *         // Rem : size begins at 1 and list index starts from 0.
+     *         //          so,if size odd ==> index=size/2
+     *         //             if even ==> index = ( size/2 + index=size/2-1 ) / 2
+     *
+     * @param list an ArrayList<BodyBuildingSet>
+     * @return the median nbRep statistic.
+     */
+    private static double getMedianNbRep(ArrayList<BodyBuildingSet> list) {
+        Collections.sort(list, new BodyBuildingSet.SortByNbRep());
+        return list.size() % 2 == 0 ? (list.get(list.size() / 2).getNbRep() + list.get(list.size() / 2 - 1).getNbRep()) / 2 : list.get(list.size() / 2).getNbRep();
+    }
+
+    /**
+     * compute median statistics for loadBySet in a list of BodyBuildingSet.
+     *         // the list is ordered by loadsByNbReps.
+     *         // median is get by using the middle index if size is odd, or, by using the middle between the 2 central indexes if size is even .
+     *         // Rem : size begins at 1 and list index starts from 0.
+     *         //          so,if size odd ==> index=size/2
+     *         //             if even ==> index = ( size/2 + index=size/2-1 ) / 2
+     *
+     * @param list an ArrayList<BodyBuildingSet>
+     * @return the median loadBySet statistic.
+     */
+    private static double getMedianLoadByNbRep(ArrayList<BodyBuildingSet> list) {
+        Collections.sort(list, new BodyBuildingSet.SortByLoadByNbRep());
+        return list.size() % 2 == 0 ? (list.get(list.size() / 2).getLoadByNbRep() + list.get(list.size() / 2 - 1).getLoadByNbRep()) / 2 : list.get(list.size() / 2).getLoadByNbRep();
+    }
 
 
-    public static double[][] computeStats(ArrayList<BodyBuildingSet> bodyBuildingSetsListComplete,String exerciseLib) throws ServiceSetsFile.fileEmptyException {
+
+// deprecated
+    public static double[][] computeStatsOld(ArrayList<BodyBuildingSet> bodyBuildingSetsListComplete, String exerciseLib) throws ServiceSetsFile.FileEmptyException {
 
         double sumOfLoadByNbRep = 0;
         double sumOfNbRep = 0;
@@ -28,7 +122,7 @@ public class ServiceStat {
 
         // no sets ==> no stats...
         if (bodyBuildingSetsList.isEmpty()) {
-            throw new ServiceSetsFile.fileEmptyException("no sets for "+exerciseLib+" ! ");
+            throw new ServiceSetsFile.FileEmptyException("no sets for " + exerciseLib + " ! ");
         }
 
         // détermination des 3 moyennes

@@ -3,7 +3,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.InputMismatchException;
 import java.util.Scanner;
 
 public class ServiceSetsFile {
@@ -14,7 +13,7 @@ public class ServiceSetsFile {
      * @param fileName the path to the file on disk.
      * @return the ArrayList of BodyBuildingSet.
      */
-    public static ArrayList loadCsvFileInMemory(String fileName) throws FileNotFoundException,fileEmptyException {
+    public static ArrayList loadCsvFileInMemory(String fileName) throws FileNotFoundException, FileEmptyException {
 
         // Alimentation d'un arrayList de BodyBuildingSets par lecture du fichier passé en argument
         ArrayList<String> csvLinesList = readFileToArrayList(fileName);
@@ -34,7 +33,7 @@ public class ServiceSetsFile {
             }
         }
         if (bodyBuildingSetsList.size() <  2) {
-            throw (new fileEmptyException("pas de sets dans le fichier !")) ;
+            throw (new FileEmptyException("pas de sets dans le fichier !")) ;
         }
 
         return bodyBuildingSetsList;
@@ -46,9 +45,9 @@ public class ServiceSetsFile {
      *      * @param s ???
      *      * @return ???
      */
-    public static class fileEmptyException  extends Exception {
+    public static class FileEmptyException extends Exception {
 
-        public fileEmptyException(String s) {
+        public FileEmptyException(String s) {
             super(s) ;
         }
     }
