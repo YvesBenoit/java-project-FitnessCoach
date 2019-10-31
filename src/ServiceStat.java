@@ -6,9 +6,14 @@ public class ServiceStat {
 
     /**
      * compute average, median and max statistics for load, nbRep and load by nbRep from a list of BodyBuildingSet and manage display.
+     *
      * @param bodyBuildingSetsListComplete an ArrayList<BodyBuildingSet> containing the whole body building sets read in file.
      * @param exerciseLib the chosen exercise text.
      * @return An array containing the nine possibles values.
+     *                    //    1st argument : a 3*3 array of double containing result of the 3 stats (average, median, maximum) for the 3 possibles choices (load/nbRep ; nbRep ; load/set)
+     *                     //    2nd argument is the text of choosen exercise
+     *                     //    3rd argument is the text of asked statistics
+     *
      */
     public static double[][] computeStats(ArrayList<BodyBuildingSet> bodyBuildingSetsListComplete, String exerciseLib) throws ServiceSetsFile.FileEmptyException {
 

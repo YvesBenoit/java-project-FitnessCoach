@@ -68,21 +68,19 @@ public class Main {
                     // Load sets in memory
                     try {
                         bodyBuildingSetsList = ServiceSetsFile.loadCsvFileInMemory(args[0]);
-                    } catch (Exception e) {
-                        if (e instanceof ServiceSetsFile.FileEmptyException) {
-                            System.out.println("Une erreur est survenue !  le fichier ne contient qu'un entête !\n" + e.getLocalizedMessage());
-                            return;
-                        } else {
-                            System.out.println("Une erreur est survenue !  Pas de fichier d'historique de sets !\n" + e.getLocalizedMessage());
-                            return;
-                        }
+                    } catch (FileNotFoundException e1) {
+                        System.out.println("Une erreur est survenue !  Pas de fichier d'historique de sets !\n" + e1.getLocalizedMessage());
+                        return;
+
+                    } catch (ServiceSetsFile.FileEmptyException e2) {
+                        System.out.println("Une erreur est survenue !  le fichier ne contient qu'un entête !\n" + e2.getLocalizedMessage());
+                        return;
                     }
                     // compute stats and display result
-                    //    1st argument : a 3*3 array of double containing result of the 3 stats (average, median, maximum) for the 3 possibles choices (load/nbRep ; nbRep ; load/set)
-                    //    2nd argument is the text of choosen exercise
-                    //    3rd argument is the text of asked statistics
                     try {
-                        showResults(ServiceStat.computeStats(bodyBuildingSetsList, exercisesMenuChoices.get(exerciseChoice)), exercisesMenuChoices.get(exerciseChoice), statsMenuChoices.get(statChoice));
+                        showResults(ServiceStat.computeStats(
+                                bodyBuildingSetsList,
+                                exercisesMenuChoices.get(exerciseChoice)), exercisesMenuChoices.get(exerciseChoice), statsMenuChoices.get(statChoice));
                     } catch (ServiceSetsFile.FileEmptyException e) {
                         System.out.println("Une erreur est survenue !  il n'y a pas de sets enregistrés pour l'exercice demandé !\n" + e.getLocalizedMessage());
                     }
